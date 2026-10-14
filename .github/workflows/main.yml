@@ -1,0 +1,11 @@
+- name: Preflight CI
+  # You may pin to the exact commit or the version.
+  # uses: mourice12/preflight-cli@7a88c04c0f3ac7409be5241965e1afdfa6b1068e
+  uses: mourice12/preflight-cli@v1.0.0
+  with:
+    # Comma-separated list of checks to run (syntax, secrets, variables, environments, actions, expressions, permissions, runners, jobs).
+    checks: # optional, default is syntax,secrets,variables,environments,actions,expressions,permissions,runners,jobs
+    # Include per-finding fix text in the job summary.
+    verbose: # optional, default is false
+    # GitHub token used to read repo metadata (secret names, variables, environments). Defaults to the automatic action token.
+    github-token: # optional, default is ${{ github.token }}
