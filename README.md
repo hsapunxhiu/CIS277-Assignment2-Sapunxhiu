@@ -1,1 +1,39 @@
 # CIS277-Assignment2-Sapunxhiu
+
+CIS-277 Assignment 2: Network Packet Arrival Queue
+
+## Student
+* **Name:** [Your Name]
+* **Course:** CIS-277 Data Structures
+
+## Design
+The network packet system consists of two primary layers: memory management (`MemoryPool`) and order tracking (`Queue`).
+* **Circular Array Queue (`Queue<T>`):** Implemented using a fixed-capacity `std::vector<T>` storage container. The queue maintains a `front_` index and a `count_` tracking total elements. The insertion index (`back`) is dynamically derived using modulo arithmetic: `(front_ + count_) % capacity_`. This guarantees structural $O(1)$ dynamic push and pop operations without needing array memory shifts.
+* **Separation of Responsibilities:** `PacketQueue` delegates byte storage management to `MemoryPool` and arrival ordering to `Queue<PacketDescriptor>`. Descriptors store only primitive fields (`id`, `length`, and `blockPtr`), preventing redundant memory duplications while in transit.
+
+Analysis Questions
+1. Why must packet service be FIFO even though free-block reuse is LIFO?
+Network packet delivery requires strict fairness: earlier arriving packets must be processed before newly arrived ones to prevent starvation and latency spikes. The LIFO behavior of the memory pool is purely an internal memory optimization designed to maximize cache locality for recently freed memory addresses; it does not dictate packet arrival sequencing.
+
+How does your circular array wrap without shifting all waiting packets?
+Instead of shifting remaining elements toward index 0 upon dequeue, the front index advances via (front_ + 1) % capacity_. When adding new items, the write index is calculated directly using (front_ + count_) % capacity_. Modulo arithmetic wraps indices back to index 0 when reaching the buffer end, preserving O(1) operations without memory shifts.
+
+What happens at queue overflow and underflow, and why must those attempts leave state unchanged?
+
+Overflow: Occurs when calling enqueue() on a full queue or receive() with no available pool blocks. The operation immediately returns false.
+
+Underflow: Occurs when calling dequeue() or processNext() on an empty queue. The operation immediately returns false and leaves output variables intact.
+
+Leaving state unchanged guarantees strong exception safety and system atomicity—failed operational attempts do not leak pool blocks, corrupt index counters, or erase input parameters.
+
+What are the time complexities of queue operations and of receive/processNext when the packet has length bytes?
+
+Raw Queue<T> operations (enqueue, dequeue, front) take O(1) time complexity because index arithmetic and array lookups are constant time.
+
+receive and processNext take O(length) time complexity because they perform explicit byte copies (std::copy / std::vector::assign) to transfer packet payloads into and out of the memory pool blocks.
+
+Why must processNext copy bytes out before returning the block to the pool?
+Returning the block to the MemoryPool makes that memory slice immediately eligible for reallocation by a subsequent receive() call. If the block were deallocated prior to copying out the packet payload, incoming thread writes could overwrite the data mid-processing, leading to dangling pointers, race conditions, and data corruption.
+
+AI Use
+AI was utilized to verify edge-case coverage and generate unit test validation scripts. All logic, pointers, and memory boundary guarantees were manually verified against the assignment specifications.
