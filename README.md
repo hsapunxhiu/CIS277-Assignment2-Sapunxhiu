@@ -16,7 +16,33 @@ g++ -std=c++23 -Wall -Wextra -pedantic main.cpp PacketQueue.cpp MemoryPool.cpp -
 ## How to Run
 Execute the compiled binary directly from the terminal: ./packet_queue
 
-Analysis Questions
+## Tests and Results
+PacketQueue Arrival & Processing Tests:
+[Initial state] Pending packets: 0 | Available blocks: 3
+Receiving Packets 1, 2, and 3...
+[After receiving 3 packets] Pending packets: 3 | Available blocks: 0
+
+Attempting to receive Packet 4 (Queue Overflow)...
+Receive result on full queue: Failed (Expected)
+
+Processing oldest packet:
+Processed Packet ID: 101 | Size: 5 bytes
+[After processing ID 101] Pending packets: 2 | Available blocks: 1
+
+Receiving Packet 4 now that a block was freed (Demonstrating FIFO with LIFO Pool)...
+[After receiving ID 104] Pending packets: 3 | Available blocks: 0
+
+Draining remaining packets to verify FIFO sequence...
+Processed Packet ID: 102 [First byte: 0x20]
+Processed Packet ID: 103 [First byte: 0x30]
+Processed Packet ID: 104 [First byte: 0x40]
+[Queue completely drained] Pending packets: 0 | Available blocks: 3
+
+Attempting processNext on empty queue...
+processNext on empty queue result: Failed (Expected)
+outId remains unchanged: 999
+
+## Analysis Questions
 1. Why must packet service be FIFO even though free-block reuse is LIFO?
 Network packet delivery requires strict fairness: earlier arriving packets must be processed before newly arrived ones to prevent starvation and latency spikes. The LIFO behavior of the memory pool is purely an internal memory optimization designed to maximize cache locality for recently freed memory addresses; it does not dictate packet arrival sequencing.
 
@@ -35,5 +61,5 @@ receive and processNext take O(length) time complexity because they perform expl
 5. Why must processNext copy bytes out before returning the block to the pool?
 Returning the block to the MemoryPool makes that memory slice immediately eligible for reallocation by a subsequent receive() call. If the block were deallocated prior to copying out the packet payload, incoming thread writes could overwrite the data mid-processing, leading to dangling pointers, race conditions, and data corruption.
 
-AI Use
+## AI Use
 AI was utilized to verify edge-case coverage and generate unit test validation scripts. All logic, pointers, and memory boundary guarantees were manually verified against the assignment specifications.
